@@ -53,7 +53,6 @@ import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.downloads
 import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.fit.FitBool;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.fit.FitDbImporter;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.fit.FitMessage;
-import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.fit.FitMessageDefinition;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.fit.FitMessageDefinitions;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.fit.FitParser;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.fit.FitWeatherConditions;
@@ -68,7 +67,6 @@ import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.messages.
 import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.messages.DeviceInformationResponseMessage;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.messages.DirectoryFileFilterRequestMessage;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.messages.DirectoryFileFilterResponseMessage;
-import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.messages.DownloadRequestMessage;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.messages.DownloadRequestResponseMessage;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.messages.FileTransferDataMessage;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.vivomovehr.messages.FileTransferDataResponseMessage;
@@ -116,7 +114,6 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -902,13 +899,12 @@ public class VivomoveHrSupport extends AbstractBTLEDeviceSupport implements File
 
     private void downloadFile(int fileIndex) {
         LOG.info("Requesting download of file {}", fileIndex);
-        sendMessage(new DownloadRequestMessage(fileIndex, 0, 1, 0, 0).packet);
+        fileDownloadQueue.addToDownloadQueue(fileIndex, 0);
     }
 
     private void downloadGarminDeviceXml() {
         LOG.info("Requesting Garmin device XML download");
         fileDownloadQueue.addToDownloadQueue(VivomoveConstants.GARMIN_DEVICE_XML_FILE_INDEX, 0);
-        // sendMessage(new DownloadRequestMessage(VivomoveConstants.GARMIN_DEVICE_XML_FILE_INDEX, 0, 1, 0, 0).packet);
     }
 
     private void sendBatteryStatus() {
@@ -1162,10 +1158,12 @@ public class VivomoveHrSupport extends AbstractBTLEDeviceSupport implements File
     @Override
     public void onTestNewFunction() {
         dbg("onTestNewFunction()");
-        final byte[] data = new String(new byte[100]).replace("\0", "test\n").getBytes(StandardCharsets.UTF_8);
+        downloadFile(26);
+
+        //final byte[] data = new String(new byte[100]).replace("\0", "test\n").getBytes(StandardCharsets.UTF_8);
         //fileUploadQueue.queueCreateFile(data.length, GarminFitSubtypes.FileDataType.DEBUG.code, GarminFitSubtypes.FitSubType.INVALID.code, 1, "TEST.TXT", data);
 
-        updateDeviceSettings();
+        //updateDeviceSettings();
 
         //sendMessage(new CreateFileRequestMessage(500, GarminFitSubtypes.FileDataType.SETTINGS.code, GarminFitSubtypes.FitSubType.INVALID.code, 0, 0, -1, "SETTINGS\\SETTINGS.FIT").packet);
         //listFiles(DirectoryFileFilterRequestMessage.FILTER_CUSTOM_FILTER);
@@ -1265,7 +1263,7 @@ public class VivomoveHrSupport extends AbstractBTLEDeviceSupport implements File
                 final User user = DBHelper.getUser(session);
                 final int ts = (int) (System.currentTimeMillis() / 1000);
 
-                final DownloadedFitFile downloadedFitFile = new DownloadedFitFile(0L, ts, device.getId(), user.getId(), downloadedDirectoryEntry.fileNumber, downloadedDirectoryEntry.fileDataType, downloadedDirectoryEntry.fileSubType, downloadedDirectoryEntry.fileDate.getTime(), downloadedDirectoryEntry.specificFlags, downloadedDirectoryEntry.fileSize, data);
+                final DownloadedFitFile downloadedFitFile = new DownloadedFitFile(null, ts, device.getId(), user.getId(), downloadedDirectoryEntry.fileNumber, downloadedDirectoryEntry.fileDataType, downloadedDirectoryEntry.fileSubType, downloadedDirectoryEntry.fileDate.getTime(), downloadedDirectoryEntry.specificFlags, downloadedDirectoryEntry.fileSize, data);
                 session.getDownloadedFitFileDao().insert(downloadedFitFile);
             } catch (Exception e) {
                 LOG.error("Error saving downloaded file to database", e);

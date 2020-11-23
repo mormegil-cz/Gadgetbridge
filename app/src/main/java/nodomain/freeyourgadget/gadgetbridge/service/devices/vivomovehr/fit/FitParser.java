@@ -109,7 +109,6 @@ public class FitParser {
     }
 
     private void parseDataMessage(MessageReader reader, FitLocalMessageDefinition localMessageDefinition, FitMessage dataMessage) {
-        System.out.println("parseDataMessage: " + localMessageDefinition.globalDefinition.globalMessageID);
         for (FitLocalFieldDefinition localFieldDefinition : localMessageDefinition.fieldDefinitions) {
             final Object value = readValue(reader, localFieldDefinition);
             if (!localFieldDefinition.baseType.invalidValue.equals(value)) {
